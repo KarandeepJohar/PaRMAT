@@ -26,7 +26,10 @@ public:
 		recIndex_vertical ( p_index_v )
 
 	{}
-
+	bool operator > (const Square &cSource) const
+	{
+	    return (nEdgeToGenerate > cSource.nEdgeToGenerate);
+	}
 	// Copy constructor.
 	Square( const Square &cSource );
 

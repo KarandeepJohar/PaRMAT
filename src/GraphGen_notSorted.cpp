@@ -65,22 +65,31 @@ bool GraphGen_notSorted::GenerateGraph(
 		) {
 
 	std::vector<Square> squares ( 1, Square( 0, nVertices, 0, nVertices, nEdges, 0, 0, 0 ) );
-
+	std::cout <<"squares size" << squares.size()<<"\n";
 	bool allRecsAreInRange;
 	do {
 		allRecsAreInRange = true;
+		// std::cout <<"inside Not sorted" <<"\n";
+
 		unsigned int recIdx = 0;
 		for( auto& rec: squares ) {
+			// std::cout <<"inside Not sorted" <<"\n";
+
 			if( Eligible_RNG_Rec(rec, standardCapacity) ) {
-				continue;
+				// std::cout << "recIdx79 " << recIdx <<"\n";
+
+				// continue;
 			} else {
 				ShatterSquare(squares, RMAT_a, RMAT_b, RMAT_c, recIdx, directedGraph);
 				allRecsAreInRange = false;
+				
+				std::cout << "recIdx " << recIdx <<" edges "<< rec.getnEdges() <<"\n";
 				break;
 			}
 			++recIdx;
 		}
 	} while( !allRecsAreInRange );
+	std::cout <<"88 squares size" << squares.size()<<"\n";
 
 	// Making sure there are enough squares to utilize all threads.
 	while( squares.size() < nCPUWorkerThreads && !edgeOverflow(squares) ) {
@@ -92,8 +101,39 @@ bool GraphGen_notSorted::GenerateGraph(
 				biggest_size = squares.at(x).getnEdges();
 				biggest_index = x;
 			}
+		std::cerr<<"biggest_index" << biggest_index <<"\n";
 		ShatterSquare(squares, RMAT_a, RMAT_b, RMAT_c, biggest_index, directedGraph);
 	}
+
+	if (allowDuplicateEdges)
+	{
+		int originalSize = squares.size();
+		for (int index = 0; index < originalSize; ++index)
+		{
+			//memory leak?
+			Square srcRect(squares.at(index));
+			// squares.erase(squares.begin()+index);
+		
+			int numEdgesAssigned = 0;
+			int edgesPerSquare = srcRect.getnEdges()/nCPUWorkerThreads;
+			if (edgesPerSquare<20000)
+			{
+				continue;
+			}
+			for( unsigned int i = 0; i < nCPUWorkerThreads-1; ++i ){
+				Square destRect(srcRect);
+				destRect.setnEdges(edgesPerSquare);
+				numEdgesAssigned+=edgesPerSquare;
+				squares.push_back(destRect);
+
+			}
+			srcRect.setnEdges( srcRect.getnEdges()-numEdgesAssigned);
+			squares.at(index) = srcRect;
+		}
+
+	
+	}
+	std::sort(squares.begin(), squares.end(),std::greater<Square>());
 
 	if( SHOW_SQUARES_DETAILS )
 		for( unsigned int x = 0; x < squares.size(); ++x )
@@ -146,7 +186,6 @@ bool GraphGen_notSorted::GenerateGraph(
 		threadsafe_queue<Square> rec_queue;
 		threadsafe_queue< std::vector<Edge> > EV_queue;
 		capacity_controller<long long> capacityGate(static_cast<long long>(standardCapacity), 0);
-
 		for( auto& rec: squares )
 			rec_queue.push(rec);
 

@@ -115,6 +115,7 @@ unsigned long long genEdgeIndex_FP( unsigned long long startIdx_ull, unsigned lo
 		else
 			startIdx = cutIndex;
 	}
+	// std::cout <<"WOOOHOOO";
 	return static_cast<long long>( std::floor((startIdx+endIdx)/2.0 + 0.5) );
 
 }

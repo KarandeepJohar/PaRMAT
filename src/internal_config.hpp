@@ -6,7 +6,7 @@
  ***************************************************************************/
 
 // If you wish to have graphs that will have more than around 4 billion vertices, you should change below definition to stand for a bigger type; unsigned long long for instance.
-using EdgeIndexType = unsigned int;
+using EdgeIndexType = unsigned long long;
 
 // Set below property if you would like to add some small noise to distribution of R-MAT graph parameters: a, b, and c.
 static const bool ADD_NOISE_TO_RMAT_PARAMETERS_AT_EACH_LEVEL = false;
@@ -21,7 +21,7 @@ static const double MIN_RAM_PORTION_USAGE = 0.01, MAX_RAM_PORTION_USAGE = 0.9;
 static const bool SHOW_PROGRESS_BARS = true;
 
 // Set if you would like to see the details of assignment of edges to squares.
-static const bool SHOW_SQUARES_DETAILS = false;
+static const bool SHOW_SQUARES_DETAILS = true;
 
 // Enabling it makes the sorted output get created by "futures" instead of using explicit threads.
 static const bool USE_FUTURES_INSTEAD_OF_EXPLICIT_THREADS = false;
