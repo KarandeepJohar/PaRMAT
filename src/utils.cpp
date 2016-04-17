@@ -224,7 +224,7 @@ void ShatterSquare( std::vector<Square>& square, const double a, const double b,
 
 }
 
-std::pair<unsigned long long, unsigned long long> get_Edge_indices( unsigned long long offX, unsigned long long rngX,unsigned long long offY, unsigned long long rngY, const double a, const double b,const double c,std::uniform_int_distribution<>& dis, std::mt19937_64& gen ) {
+std::pair<unsigned long long, unsigned long long> get_Edge_indices( unsigned long long offX, unsigned long long rngX,unsigned long long offY, unsigned long long rngY, const double a, const double b,const double c,std::uniform_real_distribution<>& distribution, std::default_random_engine& generator , double sumA[], double sumAB[], double sumAC[], double sumABC[]) {
 	// std::vector<double> probabilities;
  //    probabilities.push_back(a);
  //    probabilities.push_back(b);
@@ -233,34 +233,63 @@ std::pair<unsigned long long, unsigned long long> get_Edge_indices( unsigned lon
  //    std::mt19937_64 rnd;
  //    rnd.seed(clock());
  //    auto am = make_alias_method(probabilities, rnd);
+	// double abcd = a+b+c+d;
+ //    double sumA = a/(abcd);
+ //    double sumAB = (a+b)/abcd;
+ //    double sumAC = (a+c)/abcd;
+ //    double sumABC = (a+b+c)/abcd;
+    // static std::default_random_engine generator;
 
-    double sumA = a;
-    double sumAB = a+b;
-    double sumAC = a+c;
-    double sumABC = a+b+c;
-
+    // std::uniform_real_distribution<double> distribution(0.0,1.0);
+		// double d = 1-(a+b+c);
+  //   for (int i = 0; i < 128; i++) {
+  //   const double a = A * (Rnd.GetUniDev() + 0.5);
+  //   const double b = B * (Rnd.GetUniDev() + 0.5);
+  //   const double c = C * (Rnd.GetUniDev() + 0.5);
+  //   const double d = (1.0 - (A+B+C)) * (Rnd.GetUniDev() + 0.5);
+  //   const double abcd = a+b+c+d;
+  //   sumA.Add(a / abcd);
+  //   sumAB.Add((a+b) / abcd);
+  //   sumAC.Add((a+c) / abcd);
+  //   sumABC.Add((a+b+c) / abcd);
+  // }
       // rngX = Nodes;  rngY = Nodes;  offX = startIdx_ull;  offY = 0;
       // Depth = 0;
       // recurse the matrix
+    // std::cout <<"FUCK OFF";
+    // throw std::invalid_argument( "received negative value" );
+    // std::cout<<"here\n";
+    int depth =0;
       while (rngX > 1 || rngY > 1) {
-        const double RndProb = (static_cast<double>(dis(gen))/dis.max());
+    //     double A = a * (distribution(generator)+0.5);
+    //     double B = b * (distribution(generator)+0.5);
+    //     double C = c *(distribution(generator)+0.5);
+    //     double D = d *(distribution(generator)+0.5);
+  		// double abcd = A+B+C+D;
+  	 //    double sumA[depth] = A/(abcd);
+  	 //    double sumAB[] = (A+B)/abcd;
+  	 //    double sumAC = (A+C)/abcd;
+  	 //    double sumABC = (A+B+C)/abcd;
+        const double RndProb = distribution(generator);
+
         if (rngX>1 && rngY>1) {
-          if (RndProb < sumA) { rngX/=2; rngY/=2; }
-          else if (RndProb < sumAB) { offX+=rngX/2;  rngX-=rngX/2;  rngY/=2; }
-          else if (RndProb < sumABC) { offY+=rngY/2;  rngX/=2;  rngY-=rngY/2; }
+          if (RndProb < sumA[depth]) { rngX/=2; rngY/=2; }
+          else if (RndProb < sumAB[depth]) { offX+=rngX/2;  rngX-=rngX/2;  rngY/=2; }
+          else if (RndProb < sumABC[depth]) { offY+=rngY/2;  rngX/=2;  rngY-=rngY/2; }
           else { offX+=rngX/2;  offY+=rngY/2;  rngX-=rngX/2;  rngY-=rngY/2; }
         } else
         if (rngX>1) { // row vector
-          if (RndProb < sumAC) { rngX/=2; rngY/=2; }
+          if (RndProb < sumAC[depth]) { rngX/=2; rngY/=2; }
           else { offX+=rngX/2;  rngX-=rngX/2;  rngY/=2; }
         } else
         if (rngY>1) { // column vector
-          if (RndProb < sumAB) { rngX/=2; rngY/=2; }
+          if (RndProb < sumAB[depth]) { rngX/=2; rngY/=2; }
           else { offY+=rngY/2;  rngX/=2;  rngY-=rngY/2; }
         } else{
     	        throw std::invalid_argument( "received negative value" );
 
         }
+        depth++;
       }
 
      	return 	std::make_pair (offX, offY);
@@ -324,6 +353,23 @@ void generate_edges( Square& squ,
 	auto applyCondition = directedGraph || ( squ.get_H_idx() < squ.get_V_idx() ); // true: if the graph is directed or in case it is undirected, the square belongs to the lower triangle of adjacency matrix. false: the diagonal passes the rectangle and the graph is undirected.
 	auto createNewEdges = duplicate_indices.empty();
 	unsigned long long nEdgesToGen = createNewEdges ? squ.getnEdges() : duplicate_indices.size();
+  static std::default_random_engine generator;
+
+  std::uniform_real_distribution<double> distribution(0.0,1.0);
+  double sumA[128], sumAB[128], sumABC[128], sumAC[128];
+  for (int i = 0; i < 128; ++i)
+  {
+    double A = RMAT_a * (distribution(generator)*0.9+0.2);
+    double B = RMAT_b * (distribution(generator)*0.9+0.2);
+    double C = RMAT_c *(distribution(generator)*0.9+0.2);
+    double D = (1- RMAT_a+RMAT_b+RMAT_c) *(distribution(generator)*0.9+0.2);
+    double abcd = A+B+C+D;
+    sumA[i] = A/(abcd);
+    sumAB[i] = (A+B)/abcd;
+    sumAC[i] = (A+C)/abcd;
+    sumABC[i] = (A+B+C)/abcd;
+  }
+        
 	for( unsigned long long edgeIdx = 0; edgeIdx < nEdgesToGen; ) {
 		unsigned long long h_idx, v_idx;
 		std::pair <long long int,long long int> e;
@@ -332,11 +378,12 @@ void generate_edges( Square& squ,
 		rngX = squ.get_X_end()-offX;
 		offY = squ.get_Y_start();
 		rngY = squ.get_Y_end()-offY;
-		e = get_Edge_indices(offX, rngX, offY, rngY,RMAT_a,RMAT_b, RMAT_c,  std::ref(dis), std::ref(gen) );
+    // std::cout<<"rngX:"<<rngX<<" rngY:"<<rngY<<"\n";
+		e = get_Edge_indices(offX, rngX, offY, rngY,RMAT_a,RMAT_b, RMAT_c,  std::ref(distribution), std::ref(generator), sumA, sumAB, sumAC, sumABC );
 		h_idx = e.first;
 		v_idx = e.second;
-		// unsigned long long h_idx = genEdgeIndex_FP(squ.get_X_start(), squ.get_X_end(), RMAT_a, RMAT_c, std::ref(dis), std::ref(gen));
-		// unsigned long long v_idx = genEdgeIndex_FP(squ.get_Y_start(), squ.get_Y_end(), RMAT_a, RMAT_b, std::ref(dis), std::ref(gen));
+		// h_idx = genEdgeIndex_FP(squ.get_X_start(), squ.get_X_end(), RMAT_a, RMAT_c, std::ref(dis), std::ref(gen));
+		// v_idx = genEdgeIndex_FP(squ.get_Y_start(), squ.get_Y_end(), RMAT_a, RMAT_b, std::ref(dis), std::ref(gen));
 		if( (!applyCondition && h_idx > v_idx) || (!allowEdgeToSelf && h_idx == v_idx ) ) // Short-circuit if it doesn't pass the test.
 			continue;
 		if( createNewEdges )	// Create new edges.
