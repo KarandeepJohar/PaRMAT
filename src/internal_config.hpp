@@ -25,6 +25,7 @@ static const bool SHOW_SQUARES_DETAILS = true;
 
 // Enabling it makes the sorted output get created by "futures" instead of using explicit threads.
 static const bool USE_FUTURES_INSTEAD_OF_EXPLICIT_THREADS = false;
+static const bool USE_OPENMP_INSTEAD_OF_EXPLICIT_THREADS = true;
 
 // Enabling it makes the non-sorted output get created by a mutex, that controls the exclusiveness of the writes to file, instead of using concurrent queues.
 static const bool USE_A_MUTEX_TO_CONTROL_WRITE_TO_FILE_INSTEAD_OF_CONCURRENT_QUEUES = false;

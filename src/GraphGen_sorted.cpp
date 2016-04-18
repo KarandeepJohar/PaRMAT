@@ -12,6 +12,7 @@
 #include "Square.hpp"
 #include "Edge.hpp"
 #include "utils.hpp"
+#include "CycleTimer.h"
 
 
 void EachThreadGeneratesEdges(
@@ -126,13 +127,15 @@ bool GraphGen_sorted::GenerateGraph(
 			for( auto& s: r )
 				std::cout << s;
 
-	std::cout << rectagnleVecs.size() << " rectangle(s) specified.\n" << "Generating the graph ...\n";
+	std::cout << rectagnleVecs.size() << " rectangle(s) specified.\n" << nCPUWorkerThreads << " Workers\n" << "Generating the graph ...\n";
+
 
 	// Each thread pushes generated edges into a vector.
 	std::vector< std::vector<Edge> > threads_edges(nCPUWorkerThreads);
 
 	if( USE_FUTURES_INSTEAD_OF_EXPLICIT_THREADS ) {
 
+        double startTime = CycleTimer::currentSeconds();
 		/*********************************
 		 * Multi-threading using futures.
 		 *********************************/
@@ -163,13 +166,31 @@ bool GraphGen_sorted::GenerateGraph(
 		}
 
 		progressBarNewLine();
+        double endTime = CycleTimer::currentSeconds();
+        printf("Overall:  %.4f sec (note units are seconds)\n", endTime-startTime);
 
-	} else {
-
+	} else if (USE_OPENMP_INSTEAD_OF_EXPLICIT_THREADS) {
+		/*********************************************
+		 * Multi-threading using OpenMP.
+		 *********************************************/
+        double startTime = CycleTimer::currentSeconds();
+        
+		unsigned int recIdx = 0;
+        #pragma omp parallel for
+		for( ; recIdx < rectagnleVecs.size(); ++recIdx ) {
+            EachThreadGeneratesEdges(std::ref(rectagnleVecs.at(recIdx)),
+					std::ref(threads_edges[recIdx]),
+					RMAT_a, RMAT_b, RMAT_c, allowEdgeToSelf, allowDuplicateEdges, directedGraph);
+			printEdgeGroup(std::ref(threads_edges[recIdx%nCPUWorkerThreads]), outFile);
+        }
+        double endTime = CycleTimer::currentSeconds();
+        printf("Overall OpenMP time:  %.4f sec (note units are ms)\n", (endTime-startTime)*1000);
+        
+    } else {
 		/*********************************************
 		 * Multi-threading using threads explicitly.
 		 *********************************************/
-
+        double startTime = CycleTimer::currentSeconds();
 		std::vector<std::thread> threads;
 
 		// First each thread gets assigned to a job.
@@ -199,7 +220,8 @@ bool GraphGen_sorted::GenerateGraph(
 		}
 
 		progressBarNewLine();
-
+        double endTime = CycleTimer::currentSeconds();
+        printf("Overall pThreads time:  %.4f sec (note units are ms)\n", (endTime-startTime)*1000);
 	}
 
 	return( EXIT_SUCCESS );

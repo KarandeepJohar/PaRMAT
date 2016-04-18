@@ -135,7 +135,7 @@ int main( int argc, char ** argv ) {
 	}
 
 	try{
-		std::cout <<"YAY"<< "sorted"<< sorted <<"\n";
+		//std::cout <<"YAY"<< "sorted"<< sorted <<"\n";
 		// Start the work.
 		--nVertices;
 		auto fOutcome = sorted ?	GraphGen_sorted::GenerateGraph( nEdges, nVertices, a, b, c, nCPUWorkerThreads, outf, standardCapacity, allowEdgeToSelf, allowDuplicateEdges, directedGraph ) :

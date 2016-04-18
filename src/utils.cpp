@@ -353,22 +353,21 @@ void generate_edges( Square& squ,
 	auto applyCondition = directedGraph || ( squ.get_H_idx() < squ.get_V_idx() ); // true: if the graph is directed or in case it is undirected, the square belongs to the lower triangle of adjacency matrix. false: the diagonal passes the rectangle and the graph is undirected.
 	auto createNewEdges = duplicate_indices.empty();
 	unsigned long long nEdgesToGen = createNewEdges ? squ.getnEdges() : duplicate_indices.size();
-  static std::default_random_engine generator;
+    static std::default_random_engine generator;
 
-  std::uniform_real_distribution<double> distribution(0.0,1.0);
-  double sumA[128], sumAB[128], sumABC[128], sumAC[128];
-  for (int i = 0; i < 128; ++i)
-  {
-    double A = RMAT_a * (distribution(generator)*0.9+0.2);
-    double B = RMAT_b * (distribution(generator)*0.9+0.2);
-    double C = RMAT_c *(distribution(generator)*0.9+0.2);
-    double D = (1- RMAT_a+RMAT_b+RMAT_c) *(distribution(generator)*0.9+0.2);
-    double abcd = A+B+C+D;
-    sumA[i] = A/(abcd);
-    sumAB[i] = (A+B)/abcd;
-    sumAC[i] = (A+C)/abcd;
-    sumABC[i] = (A+B+C)/abcd;
-  }
+    std::uniform_real_distribution<double> distribution(0.0,1.0);
+    double sumA[128], sumAB[128], sumABC[128], sumAC[128];
+    for (int i = 0; i < 128; ++i) {
+      double A = RMAT_a * (distribution(generator)*0.9+0.2);
+      double B = RMAT_b * (distribution(generator)*0.9+0.2);
+      double C = RMAT_c * (distribution(generator)*0.9+0.2);
+      double D = (1- RMAT_a+RMAT_b+RMAT_c) * (distribution(generator)*0.9+0.2);
+      double abcd = A+B+C+D;
+      sumA[i] = A/(abcd);
+      sumAB[i] = (A+B)/abcd;
+      sumAC[i] = (A+C)/abcd;
+      sumABC[i] = (A+B+C)/abcd;
+    }
         
 	for( unsigned long long edgeIdx = 0; edgeIdx < nEdgesToGen; ) {
 		unsigned long long h_idx, v_idx;
