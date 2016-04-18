@@ -174,15 +174,23 @@ bool GraphGen_sorted::GenerateGraph(
 		 * Multi-threading using OpenMP.
 		 *********************************************/
         double startTime = CycleTimer::currentSeconds();
-        
-		unsigned int recIdx = 0;
-        #pragma omp parallel for
-		for( ; recIdx < rectagnleVecs.size(); ++recIdx ) {
-            EachThreadGeneratesEdges(std::ref(rectagnleVecs.at(recIdx)),
-					std::ref(threads_edges[recIdx]),
-					RMAT_a, RMAT_b, RMAT_c, allowEdgeToSelf, allowDuplicateEdges, directedGraph);
-			printEdgeGroup(std::ref(threads_edges[recIdx%nCPUWorkerThreads]), outFile);
+        std::mutex writeMutex;
+        #pragma omp parallel for 
+		for( unsigned int recIdx = 0; recIdx < rectagnleVecs.size(); ++recIdx ) {
+			std::vector<Edge> threads_edge_vec;
+
+           	EachThreadGeneratesEdges(std::ref(rectagnleVecs.at(recIdx)),
+			std::ref(threads_edge_vec),
+			RMAT_a, RMAT_b, RMAT_c, allowEdgeToSelf, allowDuplicateEdges, directedGraph);
+            {
+
+            	std::lock_guard<std::mutex> guard( writeMutex );
+				printEdgeGroup(std::ref(threads_edge_vec), outFile);
+            	progressBar();
+            }
         }
+        progressBarNewLine();
+
         double endTime = CycleTimer::currentSeconds();
         printf("Overall OpenMP time:  %.4f sec (note units are ms)\n", (endTime-startTime)*1000);
         
