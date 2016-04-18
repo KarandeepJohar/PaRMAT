@@ -39,7 +39,7 @@ void EachThreadGeneratesEdges(
 	// For all the rectangles we have to generate edge for.
 	for( auto& rec: recs ) {
 
-		generate_edges( std::ref(rec), std::ref(edgesVec), RMAT_a, RMAT_b, RMAT_c, directedGraph, allowEdgeToSelf, std::ref(dis), std::ref(gen), std::ref(throwAwayEdgesIndices) );
+		generate_edges_PSKG( std::ref(rec), std::ref(edgesVec), RMAT_a, RMAT_b, RMAT_c, directedGraph, allowEdgeToSelf, std::ref(dis), std::ref(gen), std::ref(throwAwayEdgesIndices) );
 
 		if( !allowDuplicateEdges ) {
 
@@ -58,7 +58,7 @@ void EachThreadGeneratesEdges(
 
 				if( !throwAwayEdgesIndices.empty() ) {
 					// Add instead of eliminated and check until generate enough.
-					generate_edges( std::ref(rec), std::ref(edgesVec), RMAT_a, RMAT_b, RMAT_c, directedGraph, allowEdgeToSelf, std::ref(dis), std::ref(gen), std::ref(throwAwayEdgesIndices) );
+					generate_edges_PSKG( std::ref(rec), std::ref(edgesVec), RMAT_a, RMAT_b, RMAT_c, directedGraph, allowEdgeToSelf, std::ref(dis), std::ref(gen), std::ref(throwAwayEdgesIndices) );
 					// Sort edge vector if there are duplicates or self-edges.
 					std::sort( edgesVec.end()-rec.getnEdges(), edgesVec.end() );
 				}

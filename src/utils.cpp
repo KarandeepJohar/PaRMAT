@@ -223,7 +223,40 @@ void ShatterSquare( std::vector<Square>& square, const double a, const double b,
 	}
 
 }
+std::pair<unsigned long long, unsigned long long> get_Edge_indices_PKSG( unsigned long long offX, unsigned long long rngX,unsigned long long offY, unsigned long long rngY, std::uniform_real_distribution<>& distribution, std::default_random_engine& generator , double A[], double B[], double C[], double D[], unsigned long long u, int k) {
+  unsigned long long z=u, v=0, s=0;
+    // int depth =0;
+    for (int depth = 0; depth < k; ++depth)
+    {
+      double sumAB = A[depth] +B[depth];
+      double a = A[depth]/sumAB;
+      double b = B[depth]/sumAB;
+      double c = C[depth]/(1-sumAB);
+      double d = D[depth]/(1-sumAB);
+      unsigned long long l = z%2;
+      const double RndProb = distribution(generator);
+      if (l==0)
+      {
+        s=1;
+        if (RndProb<a)
+        {
+          s=0;
+        }
+      }else {
+        s=1;
+        if (RndProb<c)
+        {
+          s=0;   
+        }
+      }
+      v= 2*v+s;
+      z= z/2;
 
+    }
+
+      return  std::make_pair (u, v);
+    
+}
 std::pair<unsigned long long, unsigned long long> get_Edge_indices( unsigned long long offX, unsigned long long rngX,unsigned long long offY, unsigned long long rngY, const double a, const double b,const double c,std::uniform_real_distribution<>& distribution, std::default_random_engine& generator , double sumA[], double sumAB[], double sumAC[], double sumABC[]) {
 	// std::vector<double> probabilities;
  //    probabilities.push_back(a);
@@ -340,7 +373,115 @@ bool edgeOverflow( std::vector<Square>& sqaures ) {
 
 	return false;
 }
+void generate_edges_PSKG( Square& squ,
+    std::vector<Edge>& edgesVec,
+    const double RMAT_a, const double RMAT_b, const double RMAT_c,
+    const bool directedGraph,
+    const bool allowEdgeToSelf,
+    std::uniform_int_distribution<>& dis, std::mt19937_64& gen,
+    std::vector<unsigned long long>& duplicate_indices ) {
+  static std::default_random_engine generator;
 
+  std::uniform_real_distribution<double> distribution(0.0,1.0);
+  int k=  ceil(log2(squ.get_X_end()-squ.get_X_start()));
+  auto applyCondition = directedGraph || ( squ.get_H_idx() < squ.get_V_idx() ); // true: if the graph is directed or in case it is undirected, the square belongs to the lower triangle of adjacency matrix. false: the diagonal passes the rectangle and the graph is undirected.
+  auto createNewEdges = duplicate_indices.empty();
+  unsigned long long nEdgesToGen = createNewEdges ? squ.getnEdges() : duplicate_indices.size();
+
+  double a[k], b[k], c[k], d[k], sumAB[k];
+  for (int i = 0; i < k; ++i)
+  {
+
+    double A = RMAT_a * (distribution(generator)+0.5);
+    double B = RMAT_b * (distribution(generator)+0.5);
+    double C = RMAT_c *(distribution(generator)+0.5);
+    double D = (1- (RMAT_a+RMAT_b+RMAT_c)) *(distribution(generator)+0.5);
+    double abcd = A+B+C+D;
+    a[i] = A/abcd;
+    b[i] = B/abcd;
+    c[i] = C/abcd;
+    d[i] = D/abcd;
+    sumAB[i] = (a[i]+b[i]);
+
+
+  }
+  unsigned long long numEdges = 0;
+  // for Each vertex u do
+  // //Determine out-degree of u
+  // p = 1; z = u
+  // for j = 1, · · · k do
+  // l = mod(z, n); p = pUl
+  // z = z/n (integer division)
+  // end for
+  int N=2;
+  for (unsigned long long  u = squ.get_X_start(); u < squ.get_X_end(); ++u)
+  {
+    double p=nEdgesToGen;
+    unsigned long long z = u;
+    unsigned long long  rngX = squ.get_X_end()-squ.get_X_start();
+    int j=0;
+    while(rngX>0) {
+
+        unsigned long long l = z%N;
+        double Ul = sumAB[j];
+        if (l==1)
+        {
+          Ul = 1-sumAB[j];
+        }
+        p= p * Ul;
+        z = z/N;
+        rngX/=2;
+        // std::cout<<p<<"p  rngX"<<rngX <<"\n";
+        j++;
+    }
+
+    double ep =p;
+    std::poisson_distribution<unsigned long long > distribution2(ep );
+    unsigned long long X = distribution2(gen);
+    // std::cout<< "\n"<<X<<" edgesGenerated "<<u<<" "<< ep<<" "<< sumAB[0]<<" " <<numEdges <<"\n";
+
+          
+    for( unsigned long long edgeIdx = 0; edgeIdx < X && numEdges < nEdgesToGen; ) {
+      unsigned long long h_idx, v_idx;
+      std::pair <long long int,long long int> e;
+      unsigned long long offX, offY, rngX, rngY;
+      offX = squ.get_X_start();
+      rngX = squ.get_X_end()-offX;
+      offY = squ.get_Y_start();
+      rngY = squ.get_Y_end()-offY;
+      // std::cout<<"rngX:"<<rngX<<" rngY:"<<rngY<<"\n";
+      e = get_Edge_indices_PKSG(offX, rngX, offY, rngY,  std::ref(distribution), std::ref(generator), a, b, c, d, u, k);
+      h_idx = e.first;
+      v_idx = e.second;
+      // h_idx = genEdgeIndex_FP(squ.get_X_start(), squ.get_X_end(), RMAT_a, RMAT_c, std::ref(dis), std::ref(gen));
+      // v_idx = genEdgeIndex_FP(squ.get_Y_start(), squ.get_Y_end(), RMAT_a, RMAT_b, std::ref(dis), std::ref(gen));
+      if( (!applyCondition && h_idx > v_idx) || (!allowEdgeToSelf && h_idx == v_idx ) ) // Short-circuit if it doesn't pass the test.
+        continue;
+      if( createNewEdges )  // Create new edges.
+        edgesVec.push_back( Edge( h_idx, v_idx ) );
+      else  // Replace non-valids.
+        edgesVec[duplicate_indices[numEdges]] = ( Edge( h_idx, v_idx ) );
+      ++edgeIdx;
+      ++numEdges;
+
+    }
+  }
+  // Generate X ∼ Poisson(Ep)
+  // //For each edge determine destination vertex
+  // for i = 1, · · · X do
+  // v = 0; z = u
+  // for j = 1, · · · k do
+  // l = mod(z, n)
+  // With probability Vls choose subregion
+  // s
+  // v = nv + s; z = z/n (integer division)
+  // end for
+  // Add edge (u, v)
+  // end for
+  // end for
+
+
+}
 
 void generate_edges( Square& squ,
 		std::vector<Edge>& edgesVec,
@@ -359,10 +500,10 @@ void generate_edges( Square& squ,
   double sumA[128], sumAB[128], sumABC[128], sumAC[128];
   for (int i = 0; i < 128; ++i)
   {
-    double A = RMAT_a * (distribution(generator)*0.9+0.2);
-    double B = RMAT_b * (distribution(generator)*0.9+0.2);
-    double C = RMAT_c *(distribution(generator)*0.9+0.2);
-    double D = (1- RMAT_a+RMAT_b+RMAT_c) *(distribution(generator)*0.9+0.2);
+    double A = RMAT_a * (distribution(generator)+0.5);
+    double B = RMAT_b * (distribution(generator)+0.5);
+    double C = RMAT_c *(distribution(generator)+0.5);
+    double D = (1- RMAT_a-RMAT_b-RMAT_c) *(distribution(generator)+0.5);
     double abcd = A+B+C+D;
     sumA[i] = A/(abcd);
     sumAB[i] = (A+B)/abcd;

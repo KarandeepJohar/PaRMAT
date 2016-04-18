@@ -33,6 +33,15 @@ void generate_edges( Square& squ,
 		std::uniform_int_distribution<>& dis, std::mt19937_64& gen,
 		std::vector<unsigned long long>& duplicate_indices );	// The last vector being empty indicates new edges need to be created. Otherwise, replacement edges instead of non-valid ones get created.
 
+void generate_edges_PSKG( Square& squ,
+        std::vector<Edge>& edgesVec,
+        const double RMAT_a, const double RMAT_b, const double RMAT_c,
+        const bool directedGraph,
+        const bool allowEdgeToSelf,
+        std::uniform_int_distribution<>& dis, std::mt19937_64& gen,
+        std::vector<unsigned long long>& duplicate_indices );   // The last vector being empty indicates new edges need to be created. Otherwise, replacement edges instead of non-valid ones get created.
+
+
 void progressBar();
 void progressBarNewLine();
 
