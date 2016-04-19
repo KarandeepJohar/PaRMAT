@@ -15,6 +15,7 @@
 #include "threadsafe_queue.hpp"
 #include "capacity_controller.hpp"
 #include "utils.hpp"
+#include "CycleTimer.h"
 
 
 void fill_up_edge_vector(
@@ -182,6 +183,8 @@ bool GraphGen_notSorted::GenerateGraph(
 		/*****************************************************
 		 * Control writes to file using concurrent queues
 		 *****************************************************/
+        double startTime = CycleTimer::currentSeconds();
+        double fileIO = 0;
 
 		threadsafe_queue<Square> rec_queue;
 		threadsafe_queue< std::vector<Edge> > EV_queue;
@@ -208,12 +211,18 @@ bool GraphGen_notSorted::GenerateGraph(
 		std::vector<Edge> poppedEV;
 		for( unsigned nWrittenEV = 0; nWrittenEV < squares.size(); ++nWrittenEV ) {
 			EV_queue.wait_and_pop( std::ref(poppedEV) );
+            double fileStartTime = CycleTimer::currentSeconds();
 			printEdgeGroupNoFlush( poppedEV, outFile );
+            double fileEndTime = CycleTimer::currentSeconds();
+            fileIO += fileEndTime-fileStartTime;
 			capacityGate.dissipate( poppedEV.size() );
 			progressBar();
 		}
 
 		std::for_each( threads.begin(), threads.end(), std::mem_fn(&std::thread::join) );
+        double endTime = CycleTimer::currentSeconds();
+        printf("Overall pThreads time:  %.4f sec (note units are ms)\n", (endTime-startTime)*1000);
+        printf("Overall FileIO time:  %.4f sec (note units are ms)\n", fileIO*1000);
 
 	}
 

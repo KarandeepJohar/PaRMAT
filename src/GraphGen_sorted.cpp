@@ -12,6 +12,7 @@
 #include "Square.hpp"
 #include "Edge.hpp"
 #include "utils.hpp"
+#include "CycleTimer.h"
 
 
 void EachThreadGeneratesEdges(
@@ -169,7 +170,8 @@ bool GraphGen_sorted::GenerateGraph(
 		/*********************************************
 		 * Multi-threading using threads explicitly.
 		 *********************************************/
-
+        double startTime = CycleTimer::currentSeconds();
+        double fileIO = 0;
 		std::vector<std::thread> threads;
 
 		// First each thread gets assigned to a job.
@@ -183,7 +185,10 @@ bool GraphGen_sorted::GenerateGraph(
 		// If any jobs left, main thread has to wait for the first worker thread and write the outcome before initiating any other worker thread.
 		for( ; recIdx < rectagnleVecs.size(); ++recIdx ) {
 			threads.at(0).join();
+            double fileStartTime = CycleTimer::currentSeconds();
 			printEdgeGroup(std::ref(threads_edges[recIdx%nCPUWorkerThreads]), outFile);
+            double fileEndTime = CycleTimer::currentSeconds();
+            fileIO += fileEndTime-fileStartTime;
 			progressBar();
 			threads.erase(threads.begin());
 			threads.push_back( std::thread( EachThreadGeneratesEdges,
@@ -197,7 +202,9 @@ bool GraphGen_sorted::GenerateGraph(
 			++recIdx;
 			progressBar();
 		}
-
+        double endTime = CycleTimer::currentSeconds();
+        printf("Overall pThreads time:  %.4f sec (note units are ms)\n", (endTime-startTime)*1000);
+        printf("Overall FileIO time:  %.4f sec (note units are ms)\n", fileIO*1000);
 		progressBarNewLine();
 
 	}
