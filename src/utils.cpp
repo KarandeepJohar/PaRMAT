@@ -358,10 +358,10 @@ void generate_edges( Square& squ,
     std::uniform_real_distribution<double> distribution(0.0,1.0);
     double sumA[128], sumAB[128], sumABC[128], sumAC[128];
     for (int i = 0; i < 128; ++i) {
-      double A = RMAT_a * (distribution(generator)*0.9+0.2);
-      double B = RMAT_b * (distribution(generator)*0.9+0.2);
-      double C = RMAT_c * (distribution(generator)*0.9+0.2);
-      double D = (1- RMAT_a+RMAT_b+RMAT_c) * (distribution(generator)*0.9+0.2);
+      double A = RMAT_a * (distribution(generator)+0.5);
+      double B = RMAT_b * (distribution(generator)+0.5);
+      double C = RMAT_c * (distribution(generator)+0.5);
+      double D = (1- (RMAT_a+RMAT_b+RMAT_c)) * (distribution(generator)+0.5);
       double abcd = A+B+C+D;
       sumA[i] = A/(abcd);
       sumAB[i] = (A+B)/abcd;
