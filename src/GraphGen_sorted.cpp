@@ -174,8 +174,9 @@ bool GraphGen_sorted::GenerateGraph(
 		 * Multi-threading using OpenMP.
 		 *********************************************/
         double startTime = CycleTimer::currentSeconds();
+        double fileIO = 0;
         std::mutex writeMutex;
-        #pragma omp parallel for 
+        #pragma omp parallel for reduction (+:fileIO)
 		for( unsigned int recIdx = 0; recIdx < rectagnleVecs.size(); ++recIdx ) {
 			std::vector<Edge> threads_edge_vec;
 
@@ -185,7 +186,10 @@ bool GraphGen_sorted::GenerateGraph(
             {
 
             	std::lock_guard<std::mutex> guard( writeMutex );
+                double fileStartTime = CycleTimer::currentSeconds();
 				printEdgeGroup(std::ref(threads_edge_vec), outFile);
+                double fileEndTime = CycleTimer::currentSeconds();
+                fileIO+=fileEndTime-fileStartTime;
             	progressBar();
             }
         }
@@ -193,12 +197,14 @@ bool GraphGen_sorted::GenerateGraph(
 
         double endTime = CycleTimer::currentSeconds();
         printf("Overall OpenMP time:  %.4f sec (note units are ms)\n", (endTime-startTime)*1000);
+        printf("Overall FileIO time:  %.4f sec (note units are ms)\n", fileIO*1000);
         
     } else {
 		/*********************************************
 		 * Multi-threading using threads explicitly.
 		 *********************************************/
         double startTime = CycleTimer::currentSeconds();
+        double fileIO = 0;
 		std::vector<std::thread> threads;
 
 		// First each thread gets assigned to a job.
@@ -212,7 +218,10 @@ bool GraphGen_sorted::GenerateGraph(
 		// If any jobs left, main thread has to wait for the first worker thread and write the outcome before initiating any other worker thread.
 		for( ; recIdx < rectagnleVecs.size(); ++recIdx ) {
 			threads.at(0).join();
+            double fileStartTime = CycleTimer::currentSeconds();
 			printEdgeGroup(std::ref(threads_edges[recIdx%nCPUWorkerThreads]), outFile);
+            double fileEndTime = CycleTimer::currentSeconds();
+            fileIO+=fileEndTime-fileStartTime;
 			progressBar();
 			threads.erase(threads.begin());
 			threads.push_back( std::thread( EachThreadGeneratesEdges,
@@ -230,6 +239,7 @@ bool GraphGen_sorted::GenerateGraph(
 		progressBarNewLine();
         double endTime = CycleTimer::currentSeconds();
         printf("Overall pThreads time:  %.4f sec (note units are ms)\n", (endTime-startTime)*1000);
+        printf("Overall FileIO time:  %.4f sec (note units are ms)\n", fileIO*1000);
 	}
 
 	return( EXIT_SUCCESS );

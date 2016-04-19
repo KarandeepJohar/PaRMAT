@@ -15,6 +15,7 @@
 #include "threadsafe_queue.hpp"
 #include "capacity_controller.hpp"
 #include "utils.hpp"
+#include "CycleTimer.h"
 
 
 void fill_up_edge_vector(
@@ -89,7 +90,7 @@ bool GraphGen_notSorted::GenerateGraph(
 			++recIdx;
 		}
 	} while( !allRecsAreInRange );
-	std::cout <<"88 squares size" << squares.size()<<"\n";
+	std::cout <<"squares size" << squares.size()<<"\n";
 
 	// Making sure there are enough squares to utilize all threads.
 	while( squares.size() < nCPUWorkerThreads && !edgeOverflow(squares) ) {
@@ -177,11 +178,46 @@ bool GraphGen_notSorted::GenerateGraph(
 
 		std::for_each( threads.begin(), threads.end(), std::mem_fn(&std::thread::join) );
 
-	} else {
+	} else if (USE_OPENMP_INSTEAD_OF_EXPLICIT_THREADS) {
+        /*****************************************************
+		 * Control writes to file using openMP
+		 *****************************************************/
+        double startTime = CycleTimer::currentSeconds();
+        double fileIO = 0;
+        std::mutex writeMutex;
+        double writeTime;
+	    std::random_device rd;
+	    std::mt19937_64 gen(rd());
+	    std::uniform_int_distribution<> dis;
+	    Square rec;
+        #pragma omp parallel for reduction( + : writeTime )
+			//while( rec_queue.try_pop(std::ref(rec)) != 0 ) {
+        //for(  ;recIdx < rectagnleVecs.size(); ++recIdx ) {
+		for( unsigned int x = 0; x < squares.size(); ++x ) {
+            std::vector<Edge> threads_edge_vec;
+		    fill_up_edge_vector( squares.at(x), std::ref(threads_edge_vec), std::ref(dis), std::ref(gen), 
+                    RMAT_a, RMAT_b, RMAT_c, allowEdgeToSelf, allowDuplicateEdges, directedGraph );
 
-		/*****************************************************
+        {
+            std::lock_guard<std::mutex> guard( writeMutex );
+            double fileStartTime = CycleTimer::currentSeconds();
+            printEdgeGroup(std::ref(threads_edge_vec), outFile);
+            double fileEndTime = CycleTimer::currentSeconds();
+            writeTime+= fileEndTime-fileStartTime;
+            progressBar();
+        }
+        }
+        progressBarNewLine();
+
+        double endTime = CycleTimer::currentSeconds();
+        printf("Overall OpenMP time:  %.4f sec (note units are ms)\n", (endTime-startTime)*1000);
+        printf("Overall File IO time:  %.4f sec (note units are ms)\n", (writeTime)*1000);
+    } else {
+        /*****************************************************
 		 * Control writes to file using concurrent queues
 		 *****************************************************/
+        double startTime = CycleTimer::currentSeconds();
+        double fileIO = 0;
 
 		threadsafe_queue<Square> rec_queue;
 		threadsafe_queue< std::vector<Edge> > EV_queue;
@@ -208,12 +244,18 @@ bool GraphGen_notSorted::GenerateGraph(
 		std::vector<Edge> poppedEV;
 		for( unsigned nWrittenEV = 0; nWrittenEV < squares.size(); ++nWrittenEV ) {
 			EV_queue.wait_and_pop( std::ref(poppedEV) );
+            double fileStartTime = CycleTimer::currentSeconds();
 			printEdgeGroupNoFlush( poppedEV, outFile );
+            double fileEndTime = CycleTimer::currentSeconds();
+            fileIO+=fileEndTime-fileStartTime;
 			capacityGate.dissipate( poppedEV.size() );
 			progressBar();
 		}
 
 		std::for_each( threads.begin(), threads.end(), std::mem_fn(&std::thread::join) );
+        double endTime = CycleTimer::currentSeconds();
+        printf("Overall pThreads time:  %.4f sec (note units are ms)\n", (endTime-startTime)*1000);
+        printf("Overall FileIO time:  %.4f sec (note units are ms)\n", fileIO*1000);
 
 	}
 
