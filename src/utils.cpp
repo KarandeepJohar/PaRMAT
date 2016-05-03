@@ -414,57 +414,62 @@ void generate_edges_PSKG( Square& squ,
   // z = z/n (integer division)
   // end for
   int N=2;
-  for (unsigned long long  u = squ.get_X_start(); u < squ.get_X_end(); ++u)
-  {
-    double p=nEdgesToGen;
-    unsigned long long z = u;
-    unsigned long long  rngX = squ.get_X_end()-squ.get_X_start();
-    int j=0;
-    while(rngX>0) {
+  while (numEdges <= nEdgesToGen) {
+      for (unsigned long long  u = squ.get_X_start(); u < squ.get_X_end(); ++u)
+      {
+        double p=nEdgesToGen;
+        unsigned long long z = u;
+        unsigned long long  rngX = squ.get_X_end()-squ.get_X_start();
+        int j=0;
+        while(rngX>0) {
 
-        unsigned long long l = z%N;
-        double Ul = sumAB[j];
-        if (l==1)
-        {
-          Ul = 1-sumAB[j];
+            unsigned long long l = z%N;
+            double Ul = sumAB[j];
+            if (l==1)
+            {
+              Ul = 1-sumAB[j];
+            }
+            p= p * Ul;
+            z = z/N;
+            rngX/=2;
+            // std::cout<<p<<"p  rngX"<<rngX <<"\n";
+            j++;
         }
-        p= p * Ul;
-        z = z/N;
-        rngX/=2;
-        // std::cout<<p<<"p  rngX"<<rngX <<"\n";
-        j++;
-    }
 
-    double ep =p;
-    std::poisson_distribution<unsigned long long > distribution2(ep );
-    unsigned long long X = distribution2(gen);
-    // std::cout<< "\n"<<X<<" edgesGenerated "<<u<<" "<< ep<<" "<< sumAB[0]<<" " <<numEdges <<"\n";
+        double ep =p;
+        std::poisson_distribution<unsigned long long > distribution2(ep );
+        unsigned long long X = distribution2(gen);
+        // std::cout<< "\n"<<X<<" edgesGenerated "<<u<<" "<< ep<<" "<< sumAB[0]<<" " <<numEdges <<"\n";
 
-          
-    for( unsigned long long edgeIdx = 0; edgeIdx < X && numEdges < nEdgesToGen; ) {
-      unsigned long long h_idx, v_idx;
-      std::pair <long long int,long long int> e;
-      unsigned long long offX, offY, rngX, rngY;
-      offX = squ.get_X_start();
-      rngX = squ.get_X_end()-offX;
-      offY = squ.get_Y_start();
-      rngY = squ.get_Y_end()-offY;
-      // std::cout<<"rngX:"<<rngX<<" rngY:"<<rngY<<"\n";
-      e = get_Edge_indices_PKSG(offX, rngX, offY, rngY,  std::ref(distribution), std::ref(generator), a, b, c, d, u, k);
-      h_idx = e.first;
-      v_idx = e.second;
-      // h_idx = genEdgeIndex_FP(squ.get_X_start(), squ.get_X_end(), RMAT_a, RMAT_c, std::ref(dis), std::ref(gen));
-      // v_idx = genEdgeIndex_FP(squ.get_Y_start(), squ.get_Y_end(), RMAT_a, RMAT_b, std::ref(dis), std::ref(gen));
-      if( (!applyCondition && h_idx > v_idx) || (!allowEdgeToSelf && h_idx == v_idx ) ) // Short-circuit if it doesn't pass the test.
-        continue;
-      if( createNewEdges )  // Create new edges.
-        edgesVec.push_back( Edge( h_idx, v_idx ) );
-      else  // Replace non-valids.
-        edgesVec[duplicate_indices[numEdges]] = ( Edge( h_idx, v_idx ) );
-      ++edgeIdx;
-      ++numEdges;
+              
+        for( unsigned long long edgeIdx = 0; edgeIdx < X && numEdges < nEdgesToGen; ) {
+          unsigned long long h_idx, v_idx;
+          std::pair <long long int,long long int> e;
+          unsigned long long offX, offY, rngX, rngY;
+          offX = squ.get_X_start();
+          rngX = squ.get_X_end()-offX;
+          offY = squ.get_Y_start();
+          rngY = squ.get_Y_end()-offY;
+          // std::cout<<"rngX:"<<rngX<<" rngY:"<<rngY<<"\n";
+          e = get_Edge_indices_PKSG(offX, rngX, offY, rngY,  std::ref(distribution), std::ref(generator), a, b, c, d, u, k);
+          h_idx = e.first;
+          v_idx = e.second;
+          // h_idx = genEdgeIndex_FP(squ.get_X_start(), squ.get_X_end(), RMAT_a, RMAT_c, std::ref(dis), std::ref(gen));
+          // v_idx = genEdgeIndex_FP(squ.get_Y_start(), squ.get_Y_end(), RMAT_a, RMAT_b, std::ref(dis), std::ref(gen));
+          if( (!applyCondition && h_idx > v_idx) || (!allowEdgeToSelf && h_idx == v_idx ) ) // Short-circuit if it doesn't pass the test.
+            continue;
+          if( createNewEdges )  // Create new edges.
+            edgesVec.push_back( Edge( h_idx, v_idx ) );
+          else  // Replace non-valids.
+            edgesVec[duplicate_indices[numEdges]] = ( Edge( h_idx, v_idx ) );
+          ++edgeIdx;
+          ++numEdges;
 
-    }
+        }
+      }
+      if (numEdges <= nEdgesToGen) {
+          break;
+      }
   }
   // Generate X ∼ Poisson(Ep)
   // //For each edge determine destination vertex
