@@ -28,7 +28,7 @@ void fill_up_edge_vector(
 	std::vector<unsigned long long> throwAwayEdgesIndices; // Indices for those edges that must be eliminated due to duplicates and/or having same destination and source index.
 
 	edgeVector.reserve(rec.getnEdges());
-	generate_edges_PSKG( std::ref(rec), std::ref(edgeVector), RMAT_a, RMAT_b, RMAT_c, directedGraph, allowEdgeToSelf, std::ref(dis), std::ref(gen), std::ref(throwAwayEdgesIndices) );
+	generate_edges( std::ref(rec), std::ref(edgeVector), RMAT_a, RMAT_b, RMAT_c, directedGraph, allowEdgeToSelf, std::ref(dis), std::ref(gen), std::ref(throwAwayEdgesIndices) );
 
 	if( !allowDuplicateEdges ) {
 
@@ -45,7 +45,7 @@ void fill_up_edge_vector(
 
 			// Add instead of eliminated and check until generate enough.
 			if( !throwAwayEdgesIndices.empty() )
-				generate_edges_PSKG( std::ref(rec), std::ref(edgeVector), RMAT_a, RMAT_b, RMAT_c, directedGraph, allowEdgeToSelf, std::ref(dis), std::ref(gen), std::ref(throwAwayEdgesIndices) );
+				generate_edges( std::ref(rec), std::ref(edgeVector), RMAT_a, RMAT_b, RMAT_c, directedGraph, allowEdgeToSelf, std::ref(dis), std::ref(gen), std::ref(throwAwayEdgesIndices) );
 
 		} while( !throwAwayEdgesIndices.empty() );
 
@@ -117,7 +117,7 @@ bool GraphGen_notSorted::GenerateGraph(
 		
 			int numEdgesAssigned = 0;
 			int edgesPerSquare = srcRect.getnEdges()/nCPUWorkerThreads;
-			if (edgesPerSquare<20000)
+			if (srcRect.getnEdges()<20000)
 			{
 				continue;
 			}
@@ -212,7 +212,7 @@ bool GraphGen_notSorted::GenerateGraph(
 		for( unsigned nWrittenEV = 0; nWrittenEV < squares.size(); ++nWrittenEV ) {
 			EV_queue.wait_and_pop( std::ref(poppedEV) );
             double fileStartTime = CycleTimer::currentSeconds();
-			printEdgeGroupNoFlush( poppedEV, outFile );
+			//printEdgeGroupNoFlush( poppedEV, outFile );
             double fileEndTime = CycleTimer::currentSeconds();
             fileIO += fileEndTime-fileStartTime;
 			capacityGate.dissipate( poppedEV.size() );
